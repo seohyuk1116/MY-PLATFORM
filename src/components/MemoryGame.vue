@@ -117,18 +117,19 @@ const gameOver = async () => {
       const scoreData = {
         uid: user.uid,
         gameName: 'memory_game',
-        score: this.score // this.score가 정의되어 있는지 확인하세요
+        score: score.value.toString() // score를 문자열로 변환
       };
+      console.log('Submitting score data:', scoreData); // 로그 추가
       const response = await scoreApi.submitScore(scoreData);
       if (response.newHighScore) {
-        alert(`새로운 최고 점수: ${this.score} 초`);
+        alert(`새로운 최고 점수: ${score.value} 점`);
       }
     } catch (error) {
       console.error('점수 등록 실패:', error);
     }
   }
 
-  this.$router.push({ name: 'Rank', params: { gameName: 'memory_game' } });
+  router.push({ name: 'Rank', params: { gameName: 'memory_game' } });
 };
 
 const goToRank = () => {
