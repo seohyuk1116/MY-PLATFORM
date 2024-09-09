@@ -1,0 +1,49 @@
+-- userGameData 테이블 생성
+CREATE TABLE userGameData (
+    num INT PRIMARY KEY AUTO_INCREMENT NOT NULL,
+    uid VARCHAR(12) NOT NULL UNIQUE, -- UID는 고유해야 합니다
+    userName VARCHAR(16) NOT NULL,
+    userPassword VARCHAR(12) NOT NULL,
+    userComment VARCHAR(32)
+);
+
+-- userScore 테이블 생성
+CREATE TABLE userScore (
+    num INT PRIMARY KEY AUTO_INCREMENT NOT NULL,
+    uid VARCHAR(12) NOT NULL,
+    userName VARCHAR(16) NOT NULL,
+    memory_game VARCHAR(32),
+    snake_game VARCHAR(32),
+    jump_game VARCHAR(32),
+    bird_game VARCHAR(32),
+    FOREIGN KEY (uid) REFERENCES userGameData(uid) ON DELETE CASCADE
+);
+
+
+-- userGameData 테이블에 샘플 데이터 삽입
+INSERT INTO userGameData (uid, userName, userPassword, userComment) VALUES
+('user001', 'Alice', 'password1', 'Alice\'s comment'),
+('user002', 'Bob', 'password2', 'Bob\'s comment'),
+('user003', 'Charlie', 'password3', 'Charlie\'s comment'),
+('user004', 'David', 'password4', 'David\'s comment'),
+('user005', 'Eve', 'password5', 'Eve\'s comment');
+
+-- userScore 테이블에 샘플 데이터 삽입
+INSERT INTO userScore (uid, userName, memory_game, snake_game, jump_game, bird_game) VALUES
+('user001', 'Alice', '1200', '1300', '1100', '1250'),
+('user002', 'Bob', '1150', '1400', '1000', '1350'),
+('user003', 'Charlie', '1300', '1250', '1200', '1450'),
+('user004', 'David', '1100', '1500', '1050', '1300'),
+('user005', 'Eve', '1400', '1350', '1250', '1500');
+
+
+
+
+
+
+-- 유저와 관련된 모든 점수 데이터 조회
+SELECT ug.uid, ug.userName, us.memory_game, us.snake_game, us.jump_game, us.bird_game
+FROM userGameData ug
+JOIN userScore us ON ug.uid = us.uid
+WHERE ug.uid = 'user1';
+

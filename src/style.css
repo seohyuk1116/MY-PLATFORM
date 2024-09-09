@@ -1,0 +1,81 @@
+/* 전체 페이지 기본 스타일 설정 */
+html,
+body {
+  height: 100%;
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background-color: #f4f4f4;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+/* 메인 페이지 컨테이너 스타일 */
+.container {
+  max-width: 800px;
+  padding: 20px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* 제목 기본 스타일 설정 */
+.main-title {
+  font-size: 2.5em;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+/* 버튼 컨테이너 스타일 설정 */
+.button-container {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+}
+
+/* 버튼 기본 스타일 설정 */
+.game-button {
+  display: inline-block;
+  padding: 15px 30px;
+  font-size: 18px;
+  color: #fff;
+  background-color: #007bff;
+  border: none;
+  border-radius: 10px;
+  text-decoration: none;
+  text-align: center;
+  transition: background-color 0.3s, box-shadow 0.3s;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.game-button:hover {
+  background-color: #0056b3;
+}
+
+/* 게임 아이콘 스타일 설정 */
+.game-icon {
+  display: block;
+  margin: 0 auto;
+  width: 50px;
+  height: auto;
+}
+
+/* 메인 메뉴 버튼 스타일 설정 */
+.back-button {
+  display: inline-block;
+  margin-top: 20px;
+  padding: 10px 20px;
+  font-size: 16px;
+  color: #fff;
+  background-color: #007bff;
+  border: none;
+  border-radius: 5px;
+  text-decoration: none;
+  text-align: center;
+  transition: background-color 0.3s, box-shadow 0.3s;
+}
+
+.back-button:hover {
+  background-color: #0056b3;
+}
