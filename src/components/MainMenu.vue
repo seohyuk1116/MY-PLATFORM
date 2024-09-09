@@ -71,11 +71,12 @@ export default {
         { path: '/doodle-jump-game', icon: doodleJumpIcon, title: 'Play Doodle Jump' },
       ],
       userScores: null,
+      currentUser: null,
     };
   },
   computed: {
     isLoggedIn() {
-      return !!localStorage.getItem('user');
+      return !!this.currentUser;
     }
   },
   methods: {
@@ -86,6 +87,7 @@ export default {
       localStorage.removeItem('user');
       localStorage.removeItem('userScores');
       this.userScores = null;
+      this.currentUser = null;
       this.$router.push('/login');
     },
     getGameTitle(game) {
@@ -98,20 +100,32 @@ export default {
       return gameTitles[game] || game;
     },
     async fetchUserScores() {
-      if (this.isLoggedIn) {
-        const user = JSON.parse(localStorage.getItem('user'));
-        try {
-          const scores = await rankApi.getUserScores(user.uid);
-          this.userScores = scores;
-          localStorage.setItem('userScores', JSON.stringify(scores));
-        } catch (error) {
-          console.error('Failed to fetch user scores:', error);
+      try {
+        if (!this.currentUser) {
+          console.warn('No user logged in');
+          return;
         }
+        console.log('Fetching scores for user:', this.currentUser.uid);
+        const scores = await rankApi.getUserScores(this.currentUser.uid);
+        console.log('Received scores:', scores);
+        this.userScores = scores;
+      } catch (error) {
+        console.error('Failed to fetch user scores:', error);
+        // 에러 처리 (예: 사용자에게 알림 표시)
       }
     },
     goToRank() {
       this.$router.push({ name: 'Rank' });
+    },
+    loadUserFromLocalStorage() {
+      const userJson = localStorage.getItem('user');
+      if (userJson) {
+        this.currentUser = JSON.parse(userJson);
+      }
     }
+  },
+  created() {
+    this.loadUserFromLocalStorage();
   },
   mounted() {
     if (!this.isLoggedIn) {

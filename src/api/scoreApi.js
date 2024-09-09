@@ -17,7 +17,18 @@ export default {
       console.log('Received user scores:', response.data); // 로그 추가
       return response.data;
     } catch (error) {
-      console.error('사용자 점수 가져오기 실패:', error.response ? error.response.data : error.message);
+      if (error.response) {
+        console.error('Error response:', error.response.status, error.response.data);
+        if (error.response.status === 404) {
+          console.log('User scores not found, returning empty object');
+          return {};
+        }
+      } else if (error.request) {
+        console.error('No response received:', error.request);
+      } else {
+        console.error('Error setting up request:', error.message);
+      }
+      console.error('Error config:', error.config);
       throw error;
     }
   },
@@ -29,7 +40,14 @@ export default {
       console.log('Score submission response:', response.data); // 로그 추가
       return response.data;
     } catch (error) {
-      console.error('점수 등록 실패:', error.response ? error.response.data : error.message);
+      console.error('점수 등록 실패:', error);
+      if (error.response) {
+        console.error('Error response:', error.response.status, error.response.data);
+      } else if (error.request) {
+        console.error('No response received:', error.request);
+      } else {
+        console.error('Error setting up request:', error.message);
+      }
       throw error;
     }
   },
