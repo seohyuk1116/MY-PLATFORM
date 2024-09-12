@@ -11,13 +11,17 @@
         </div>
         <v-container fluid>
           <v-row class="grid" align="center" justify="center">
-            <v-col v-for="(card, index) in cardArray" :key="index" cols="auto">
-              <v-img
-                :src="card.src"
-                :alt="'Card image ' + index"
-                class="card"
-                @click="flipCard(index)"
-              />
+            <v-col v-for="(card, index) in cardArray" :key="index" cols="auto" class="pa-0">
+              <div class="card-container" @click="flipCard(index)">
+                <div class="card" :class="{ 'flipped': card.flipped }">
+                  <div class="card-face card-front">
+                    <v-img :src="blankImage" :alt="'Card back'" width="100" height="100" cover />
+                  </div>
+                  <div class="card-face card-back">
+                    <v-img :src="card.img" :alt="'Card image ' + index" width="100" height="100" cover />
+                  </div>
+                </div>
+              </div>
             </v-col>
           </v-row>
         </v-container>
@@ -47,22 +51,22 @@ import blankImage from '@/assets/memory/blank.png';
 import whiteImage from '@/assets/memory/white.png';
 
 const cardArray = ref([
-  { name: 'frown', img: frownImage, src: blankImage },
-  { name: 'frown', img: frownImage, src: blankImage },
-  { name: 'happy', img: happyImage, src: blankImage },
-  { name: 'happy', img: happyImage, src: blankImage },
-  { name: 'heartsmile', img: heartsmileImage, src: blankImage },
-  { name: 'heartsmile', img: heartsmileImage, src: blankImage },
-  { name: 'laugh', img: laughImage, src: blankImage },
-  { name: 'laugh', img: laughImage, src: blankImage },
-  { name: 'meh', img: mehImage, src: blankImage },
-  { name: 'meh', img: mehImage, src: blankImage },
-  { name: 'sad', img: sadImage, src: blankImage },
-  { name: 'sad', img: sadImage, src: blankImage },
-  { name: 'smiling', img: smilingImage, src: blankImage },
-  { name: 'smiling', img: smilingImage, src: blankImage },
-  { name: 'wow', img: wowImage, src: blankImage },
-  { name: 'wow', img: wowImage, src: blankImage },
+  { name: 'frown', img: frownImage, flipped: false },
+  { name: 'frown', img: frownImage, flipped: false },
+  { name: 'happy', img: happyImage, flipped: false },
+  { name: 'happy', img: happyImage, flipped: false },
+  { name: 'heartsmile', img: heartsmileImage, flipped: false },
+  { name: 'heartsmile', img: heartsmileImage, flipped: false },
+  { name: 'laugh', img: laughImage, flipped: false },
+  { name: 'laugh', img: laughImage, flipped: false },
+  { name: 'meh', img: mehImage, flipped: false },
+  { name: 'meh', img: mehImage, flipped: false },
+  { name: 'sad', img: sadImage, flipped: false },
+  { name: 'sad', img: sadImage, flipped: false },
+  { name: 'smiling', img: smilingImage, flipped: false },
+  { name: 'smiling', img: smilingImage, flipped: false },
+  { name: 'wow', img: wowImage, flipped: false },
+  { name: 'wow', img: wowImage, flipped: false },
 ]);
 
 let cardsChosen = ref([]);
@@ -87,16 +91,16 @@ const checkForMatch = () => {
   const optionTwoId = cardsChosenId.value[1];
 
   if (cardsChosen.value[0] === cardsChosen.value[1]) {
-    cardArray.value[optionOneId].src = whiteImage;
-    cardArray.value[optionTwoId].src = whiteImage;
+    cardArray.value[optionOneId].flipped = true;
+    cardArray.value[optionTwoId].flipped = true;
     cardsWon.value.push(cardsChosen.value);
-    score.value += 10; // 매치 성공 시 10점 추가
+    score.value += 10;
   } else {
     setTimeout(() => {
-      cardArray.value[optionOneId].src = blankImage;
-      cardArray.value[optionTwoId].src = blankImage;
+      cardArray.value[optionOneId].flipped = false;
+      cardArray.value[optionTwoId].flipped = false;
     }, 400);
-    score.value -= 1; // 매치 실패 시 1점 감소
+    score.value -= 1;
   }
 
   setTimeout(() => {
@@ -112,24 +116,32 @@ const checkForMatch = () => {
 
 const gameOver = async () => {
   const user = JSON.parse(localStorage.getItem('user'));
+  let isNewHighScore = false;
+
   if (user) {
     try {
       const scoreData = {
         uid: user.uid,
         gameName: 'memory_game',
-        score: score.value.toString() // score를 문자열로 변환
+        score: score.value.toString(),
+        scoreTime: new Date().toISOString()
       };
-      console.log('Submitting score data:', scoreData); // 로그 추가
+      console.log('Submitting score data:', scoreData);
       const response = await scoreApi.submitScore(scoreData);
-      if (response.newHighScore) {
-        alert(`새로운 최고 점수: ${score.value} 점`);
-      }
+      isNewHighScore = response.newHighScore;
+      showHighScoreMessage.value = isNewHighScore;
     } catch (error) {
       console.error('점수 등록 실패:', error);
     }
   }
 
-  router.push({ name: 'Rank', params: { gameName: 'memory_game' } });
+  let message = `Game Clear! 스코어: ${score.value}`;
+  if (isNewHighScore) {
+    message += '\n최고 기록 갱신!';
+  }
+
+  alert(message);
+  location.reload();
 };
 
 const goToRank = () => {
@@ -144,19 +156,19 @@ const resetGame = () => {
   cardsClickable.value = true;
   shuffleCards();
   cardArray.value.forEach(card => {
-    card.src = blankImage;
+    card.flipped = false;
   });
 };
 
 const flipCard = (index) => {
   if (
     !cardsClickable.value ||
-    cardArray.value[index].src === whiteImage ||
+    cardArray.value[index].flipped ||
     cardsChosenId.value.includes(index)
   )
     return;
 
-  cardArray.value[index].src = cardArray.value[index].img;
+  cardArray.value[index].flipped = true;
   cardsChosen.value.push(cardArray.value[index].name);
   cardsChosenId.value.push(index);
 
@@ -172,20 +184,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* 전체 페이지 기본 스타일 설정 */
-html,
-body {
-  height: 100%;
-  margin: 0;
-  font-family: Arial, sans-serif;
-  background-color: #f4f4f4;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-}
-
-/* 게임 페이지 컨테이너 스타일 */
 .game-container {
   text-align: center;
   max-width: 800px;
@@ -193,31 +191,21 @@ body {
   padding: 20px;
   background: #fff;
   border-radius: 10px;
-  /* 그림자 크기 증가 */
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
 }
 
-/* 제목 스타일 */
 .game-title {
   font-size: 2.5em;
   margin-bottom: 5px;
   color: #333;
 }
 
-/* 점수 스타일 */
 .score {
   font-size: 1.5em;
   margin-bottom: 20px;
   color: #555;
 }
 
-/* 난이도 텍스트 스타일 */
-.difficulty-normal {
-  font-size: 2em;
-  color: sandybrown;
-}
-
-/* 그리드 스타일 */
 .grid {
   display: grid;
   grid-template-columns: repeat(4, 100px);
@@ -226,44 +214,52 @@ body {
   margin: 20px auto;
 }
 
-/* 카드 스타일 */
-.card {
+.card-container {
+  perspective: 1000px;
   width: 100px;
   height: 100px;
-  object-fit: cover;
-  border: 1px solid #ddd;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
   cursor: pointer;
-  transition: transform 0.3s, box-shadow 0.3s, opacity 0.5s;
-  opacity: 1;
-  /* 각진 부분을 둥글게 */
-  border-radius: 10px;
 }
 
-/* 카드 클릭 시 애니메이션 효과 */
-.card:active {
-  transform: scale(0.95); /* 클릭 시 약간 줄어드는 효과 */
+.card {
+  width: 100%;
+  height: 100%;
+  transition: transform 0.6s;
+  transform-style: preserve-3d;
+  position: relative;
 }
 
 .card.flipped {
   transform: rotateY(180deg);
-  opacity: 0;
 }
 
-.card.match {
-  border-color: #4caf50;
-  box-shadow: 0 4px 10px rgba(0, 255, 0, 0.5);
-  border-radius: 10px; /* 매치된 카드도 둥글게 */
+.card-face {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
 }
 
-/* 타이머 스타일 */
-.timer {
-  font-size: 1.5em;
-  margin-bottom: 20px;
-  color: #555;
+.card-front {
+  background-color: #f1f1f1;
 }
 
-/* 메인 메뉴 버튼 스타일 */
+.card-back {
+  transform: rotateY(180deg);
+  background-color: white;
+}
+
+.button-container {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 20px;
+}
+
 .back-button {
   display: inline-block;
   margin-bottom: 20px;
@@ -278,21 +274,13 @@ body {
   transition: background-color 0.3s, box-shadow 0.3s, transform 0.2s;
 }
 
-/* 버튼 클릭 시 애니메이션 효과 */
 .back-button:active {
-  transform: scale(0.95); /* 클릭 시 약간 줄어드는 효과 */
+  transform: scale(0.95);
 }
 
 .back-button:hover {
   background-color: #0056b3;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-}
-
-.button-container {
-  display: flex;
-  justify-content: center;
-  gap: 20px;
-  margin-top: 20px;
 }
 
 .rank-button {
@@ -306,7 +294,6 @@ body {
   text-decoration: none;
   text-align: center;
   transition: background-color 0.3s, box-shadow 0.3s, transform 0.2s;
-  margin-left: 10px;
 }
 
 .rank-button:hover {

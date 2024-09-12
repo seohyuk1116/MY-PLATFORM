@@ -3,7 +3,7 @@
     <div class="game-content">
       <h1 class="game-title">Doodle Jump</h1>
       <h3 class="score">
-        Score: <span>{{ score.toFixed(1) }}</span> seconds
+        Score: <span>{{ score.toFixed(1) }}</span>
       </h3>
       <div v-if="showHighScoreMessage" class="high-score-message">
         최고기록 갱신!
@@ -41,7 +41,6 @@ class Platform {
     visual.style.backgroundImage = `url(${platformImage})`
     visual.style.backgroundSize = 'cover'
     visual.style.position = 'absolute'
-    visual.style.zIndex = '10'
     grid.appendChild(visual)
   }
 }
@@ -56,31 +55,30 @@ export default {
       grid: null,
       doodler: null,
       isGameOver: false,
-      platformCount: 5,
+      platformCount: 4,
       platforms: [],
       score: 0,
-      showHighScoreMessage: false,
-      gameTimer: null,
-      platformSpeed: 4,
-      doodlerSpeed: 4,
-      speedIncrement: 0.01,
       doodlerLeftSpace: 50,
       startPoint: 150,
       doodlerBottomSpace: 150,
       upTimerId: null,
       downTimerId: null,
       isJumping: true,
-      isGoingLeft: false,
-      isGoingRight: false,
-      leftTimerId: null,
-      rightTimerId: null,
-      movePlatformsTimerId: null,
+      showHighScoreMessage: false,
+      isMovingLeft: false,
+      isMovingRight: false,
+      moveSpeed: 5.5, // 초기 이동 속도
+      platformSpeed: 4, // 초기 플랫폼 속도
+      speedIncrement: 0.1, // 속도 증가량
+      currentDirection: null,
+      animationFrameId: null,
+      gameTimer: null,
     }
   },
   mounted() {
     this.grid = this.$refs.grid
     this.doodler = this.$refs.doodler
-    this.start()
+    this.startGame()
   },
   computed: {
     backgroundStyle() {
@@ -105,39 +103,32 @@ export default {
     },
     movePlatforms() {
       if (this.doodlerBottomSpace > 200) {
-        this.platforms.forEach((platform) => {
+        this.platforms.forEach((platform, index) => {
           platform.bottom -= this.platformSpeed
           let visual = platform.visual
           visual.style.bottom = platform.bottom + 'px'
 
-          if (platform.bottom < 10) {
+          if(platform.bottom < 10) {
             let firstPlatform = this.platforms[0].visual
             this.grid.removeChild(firstPlatform)
             this.platforms.shift()
-            this.score += 1
             let newPlatform = new Platform(600, this.grid)
             this.platforms.push(newPlatform)
           }
         })
       }
     },
-    jump() {
-      clearInterval(this.downTimerId)
-      this.isJumping = true
-      this.upTimerId = setInterval(() => {
-        this.doodlerBottomSpace += 20
-        this.doodler.style.bottom = `${this.doodlerBottomSpace}px`
-        if (this.doodlerBottomSpace > 350) {
-          this.fall()
-        }
-      }, 30)
+    createDoodler() {
+      this.doodlerLeftSpace = this.platforms[0].left
+      this.doodler.style.left = this.doodlerLeftSpace + 'px'
+      this.doodler.style.bottom = this.doodlerBottomSpace + 'px'
     },
     fall() {
-      clearInterval(this.upTimerId)
       this.isJumping = false
+      clearInterval(this.upTimerId)
       this.downTimerId = setInterval(() => {
         this.doodlerBottomSpace -= 5
-        this.doodler.style.bottom = `${this.doodlerBottomSpace}px`
+        this.doodler.style.bottom = this.doodlerBottomSpace + 'px'
         if (this.doodlerBottomSpace <= 0) {
           this.gameOver()
         }
@@ -151,109 +142,156 @@ export default {
           ) {
             this.startPoint = this.doodlerBottomSpace
             this.jump()
+            this.isJumping = true
           }
         })
       }, 20)
     },
-    moveLeft() {
-      if (this.isGoingRight) {
-        clearInterval(this.rightTimerId)
-        this.isGoingRight = false
-      }
-      this.isGoingLeft = true
-      this.leftTimerId = setInterval(() => {
-        if (this.doodlerLeftSpace >= 0) {
-          this.doodlerLeftSpace -= 5
-          this.doodler.style.left = `${this.doodlerLeftSpace}px`
-        } else this.moveRight()
-      }, 20)
+    jump() {
+      clearInterval(this.downTimerId)
+      this.isJumping = true
+      this.upTimerId = setInterval(() => {
+        this.doodlerBottomSpace += 20
+        this.doodler.style.bottom = this.doodlerBottomSpace + 'px'
+        if (this.doodlerBottomSpace > (this.startPoint + 200)) {
+          this.fall()
+          this.isJumping = false
+        }
+      }, 30)
     },
-    moveRight() {
-      if (this.isGoingLeft) {
-        clearInterval(this.leftTimerId)
-        this.isGoingLeft = false
-      }
-      this.isGoingRight = true
-      this.rightTimerId = setInterval(() => {
-        if (this.doodlerLeftSpace <= 340) {
-          this.doodlerLeftSpace += 5
-          this.doodler.style.left = `${this.doodlerLeftSpace}px`
-        } else this.moveLeft()
-      }, 20)
-    },
-    moveStraight() {
-      this.isGoingLeft = false
-      this.isGoingRight = false
-      clearInterval(this.leftTimerId)
-      clearInterval(this.rightTimerId)
-    },
-    control(e) {
-      if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") {
-        this.moveLeft()
-      } else if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") {
-        this.moveRight()
-      } else if (e.key === "ArrowUp" || e.key === "w" || e.key === "W") {
-        this.moveStraight()
+    updateScore() {
+      this.score += 0.1; // 0.1초마다 0.1씩 증가
+      if (Math.floor(this.score) > Math.floor(this.score - 0.1)) {
+        // 스코어가 정수로 변할 때마다 속도 증가
+        this.moveSpeed += this.speedIncrement;
+        this.platformSpeed += this.speedIncrement;
       }
     },
     async gameOver() {
-      console.log('Game Over')
-      this.isGameOver = true
-      clearInterval(this.upTimerId)
-      clearInterval(this.downTimerId)
-      clearInterval(this.leftTimerId)
-      clearInterval(this.rightTimerId)
-      clearInterval(this.movePlatformsTimerId)
-      clearInterval(this.gameTimer)
-
+      this.isGameOver = true;
+      clearInterval(this.upTimerId);
+      clearInterval(this.downTimerId);
+      clearInterval(this.gameTimer); // 게임 타이머 정지
+      this.updateScore(); // 최종 점수 업데이트
+      
+      // 두들 멈추기
+      this.isMovingLeft = false;
+      this.isMovingRight = false;
+      if (this.animationFrameId) {
+        cancelAnimationFrame(this.animationFrameId);
+      }
+      
       const user = JSON.parse(localStorage.getItem('user'));
+      let isNewHighScore = false;
+
       if (user) {
         try {
-          const response = await rankApi.submitScore({
+          const scoreData = {
             uid: user.uid,
-            gameName: 'doodle_jump',
-            score: this.score.toFixed(1)
-          });
-          
-          if (response.newHighScore) {
-            this.showHighScoreMessage = true
-            setTimeout(() => {
-              this.showHighScoreMessage = false
-            }, 3000)
-          }
+            gameName: 'jump_game',
+            score: this.score.toFixed(1),
+            scoreTime: new Date().toISOString()
+          };
+          console.log('Submitting score data:', scoreData);
+          const response = await rankApi.submitScore(scoreData);
+          isNewHighScore = response.newHighScore;
+          this.showHighScoreMessage = isNewHighScore;
         } catch (error) {
           console.error('점수 등록 실패:', error);
         }
       }
+      
+      let message = `Game Over! 스코어: ${this.score.toFixed(1)}`;
+      if (isNewHighScore) {
+        message += '\n최고 기록 갱신!';
+      }
+
+      alert(message);
+      location.reload();
     },
-    start() {
+    startGame() {
       if (!this.isGameOver) {
+        this.score = 0;
+        this.moveSpeed = 5.5; // 초기 이동 속도 설정
+        this.platformSpeed = 4; // 초기 플랫폼 속도 설정
+        this.speedIncrement = 0.1; // 속도 증가량
         this.createPlatforms()
-        this.doodlerLeftSpace = this.platforms[0].left
+        this.createDoodler()
+        setInterval(this.movePlatforms, 30)
         this.jump()
-        this.movePlatformsTimerId = setInterval(() => {
-          this.movePlatforms()
-        }, 30)
+        document.addEventListener('keydown', this.handleKeyDown)
+        document.addEventListener('keyup', this.handleKeyUp)
+        
+        // 게임 타이머 시작
         this.gameTimer = setInterval(() => {
-          this.score += 0.1
-          this.platformSpeed += this.speedIncrement
-          this.doodlerSpeed += this.speedIncrement
-        }, 100)
-        document.addEventListener('keydown', this.control)
+          this.updateScore()
+        }, 100) // 0.1초마다 업데이트
       }
     },
     goToRank() {
       this.$router.push({ name: 'Rank', params: { gameName: 'jump_game' } });
     },
+    startMoving(direction) {
+      this.currentDirection = direction;
+      if (direction === 'left') {
+        this.isMovingLeft = true;
+        this.isMovingRight = false;
+      } else if (direction === 'right') {
+        this.isMovingRight = true;
+        this.isMovingLeft = false;
+      }
+      if (!this.animationFrameId) {
+        this.move();
+      }
+    },
+    stopMoving(direction) {
+      if (direction === this.currentDirection) {
+        this.currentDirection = null;
+        this.isMovingLeft = false;
+        this.isMovingRight = false;
+      }
+    },
+    move() {
+      if (this.isMovingLeft && this.doodlerLeftSpace > 0) {
+        this.doodlerLeftSpace = Math.max(0, this.doodlerLeftSpace - this.moveSpeed);
+      }
+      if (this.isMovingRight && this.doodlerLeftSpace < 340) {
+        this.doodlerLeftSpace = Math.min(340, this.doodlerLeftSpace + this.moveSpeed);
+      }
+      this.doodler.style.left = `${this.doodlerLeftSpace}px`;
+
+      if (this.isMovingLeft || this.isMovingRight) {
+        this.animationFrameId = requestAnimationFrame(this.move);
+      } else {
+        this.animationFrameId = null;
+      }
+    },
+    handleKeyDown(e) {
+      if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") {
+        e.preventDefault();
+        this.startMoving('left');
+      } else if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") {
+        e.preventDefault();
+        this.startMoving('right');
+      }
+    },
+    handleKeyUp(e) {
+      if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") {
+        this.stopMoving('left');
+      } else if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") {
+        this.stopMoving('right');
+      }
+    },
   },
   beforeUnmount() {
-    document.removeEventListener('keydown', this.control)
+    document.removeEventListener('keydown', this.handleKeyDown);
+    document.removeEventListener('keyup', this.handleKeyUp);
+    if (this.animationFrameId) {
+      cancelAnimationFrame(this.animationFrameId);
+    }
     clearInterval(this.upTimerId)
     clearInterval(this.downTimerId)
-    clearInterval(this.leftTimerId)
-    clearInterval(this.rightTimerId)
-    clearInterval(this.movePlatformsTimerId)
-    clearInterval(this.gameTimer)
+    clearInterval(this.gameTimer) // 컴포넌트 언마운트 시 게임 타이머 정지
   }
 }
 </script>
@@ -283,6 +321,15 @@ export default {
 .doodler {
   width: 60px;
   height: 85px;
+  background-size: contain; /* 변경: cover에서 contain으로 */
+  background-repeat: no-repeat; /* 추가: 이미지 반복 방지 */
+  background-position: center; /* 추가: 이미지를 중앙에 위치 */
+  position: absolute;
+}
+
+.platform {
+  width: 85px;
+  height: 15px;
   background-size: cover;
   position: absolute;
 }

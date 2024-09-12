@@ -23,8 +23,8 @@
           <tr>
             <th>순위</th>
             <th>이름</th>
-            <th>점수{{ selectedGame === 'memory_game' || selectedGame === 'jump_game' ? ' (초)' : '' }}</th>
-            <th>날짜</th>
+            <th>점수{{ selectedGame === 'jump_game' || selectedGame === 'bird_game' ? ' (초)' : ' (점)' }}</th>
+            <th>날짜 및 시간</th>
           </tr>
         </thead>
         <tbody>
@@ -32,7 +32,7 @@
             <td>{{ rank.rank }}</td>
             <td>{{ rank.userName }}</td>
             <td>{{ formatScore(rank.score, selectedGame) }}</td>
-            <td>{{ formatDate(rank.date) }}</td>
+            <td>{{ formatDateTime(rank.scoreTime) }}</td>
           </tr>
         </tbody>
       </table>
@@ -78,16 +78,25 @@ export default {
       }
     };
 
-    const formatDate = (dateString) => {
-      if (!dateString) return 'N/A';
-      return new Date(dateString).toLocaleString();
-    };
-
     const formatScore = (score, gameName) => {
-      if (gameName === 'memory_game' || gameName === 'jump_game') {
+      if (gameName === 'jump_game' || gameName === 'bird_game') {
         return score ? `${parseFloat(score).toFixed(1)}초` : 'N/A';
       }
-      return score || 'N/A';
+      return score ? `${score}점` : 'N/A';
+    };
+
+    const formatDateTime = (dateTimeString) => {
+      if (!dateTimeString) return 'N/A';
+      const date = new Date(dateTimeString);
+      return date.toLocaleString('ko-KR', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      });
     };
 
     const selectGame = (gameName) => {
@@ -117,7 +126,7 @@ export default {
       rankings,
       isLoading,
       error,
-      formatDate,
+      formatDateTime,
       formatScore,
       goBack,
       games,
@@ -165,6 +174,7 @@ export default {
   border: 1px solid #ddd;
   padding: 8px;
   text-align: left;
+  font-size: 0.9em;
 }
 
 .rank-table th {

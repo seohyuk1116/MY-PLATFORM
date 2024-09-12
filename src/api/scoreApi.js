@@ -62,5 +62,15 @@ export default {
       console.error('게임 랭킹 가져오기 실패:', error.response ? error.response.data : error.message);
       throw error;
     }
+  },
+
+  getUserHighScore: async (uid, gameName) => {
+    try {
+      const response = await axios.get(`${API_URL}/scores/highscore/${uid}/${gameName}`);
+      return response.data.highScore;
+    } catch (error) {
+      console.error('Error fetching high score:', error);
+      return 0;
+    }
   }
 };
