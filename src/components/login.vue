@@ -9,6 +9,7 @@
           <v-card-text>
             <v-form @submit.prevent="login" ref="form">
               <v-text-field
+                ref="uid"
                 v-model="uid"
                 label="아이디"
                 name="uid"
@@ -16,15 +17,20 @@
                 type="text"
                 :rules="[v => !!v || '아이디를 입력해주세요']"
                 required
+                @keydown.enter="focusNextField('userPassword')"
               ></v-text-field>
               <v-text-field
+                ref="userPassword"
                 v-model="userPassword"
                 label="비밀번호"
                 name="userPassword"
                 prepend-icon="mdi-lock"
-                type="password"
+                :append-icon="showPassword ? 'mdi-eye' : 'mdi-eye-off'"
+                :type="showPassword ? 'text' : 'password'"
+                @click:append="showPassword = !showPassword"
                 :rules="[v => !!v || '비밀번호를 입력해주세요']"
                 required
+                @keydown.enter="login"
               ></v-text-field>
             </v-form>
             <v-alert v-if="errorMessage" type="error" dense>
@@ -53,6 +59,7 @@ export default {
     uid: '',
     userPassword: '',
     errorMessage: '',
+    showPassword: false,
   }),
   computed: {
     isFormValid() {
@@ -60,6 +67,13 @@ export default {
     },
   },
   methods: {
+    focusNextField(fieldName) {
+      this.$nextTick(() => {
+        if (this.$refs[fieldName]) {
+          this.$refs[fieldName].focus();
+        }
+      });
+    },
     async login() {
       if (this.$refs.form.validate()) {
         try {
@@ -83,7 +97,7 @@ export default {
             
             this.$router.push('/');
           } else {
-            this.errorMessage = response.message;
+            this.errorMessage = response.message || '로그인에 실패했습니다.';
           }
         } catch (error) {
           console.error('Login failed:', error);

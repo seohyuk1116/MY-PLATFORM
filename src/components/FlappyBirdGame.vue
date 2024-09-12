@@ -36,24 +36,32 @@ export default {
     const gameOver = async () => {
       cancelAnimationFrame(animationFrame.value);
       const user = JSON.parse(localStorage.getItem('user'));
+      let isNewHighScore = false;
+
       if (user) {
         try {
           const scoreData = {
             uid: user.uid,
-            gameName: 'flappy_bird',
-            score: score.value.toString()
+            gameName: 'bird_game',
+            score: score.value.toString(),
+            scoreTime: new Date().toISOString()
           };
+          console.log('Submitting score data:', scoreData);
           const response = await rankApi.submitScore(scoreData);
-          if (response.newHighScore) {
-            showHighScoreMessage.value = true;
-            setTimeout(() => {
-              showHighScoreMessage.value = false;
-            }, 3000);
-          }
+          isNewHighScore = response.newHighScore;
+          showHighScoreMessage.value = isNewHighScore;
         } catch (error) {
           console.error('점수 등록 실패:', error);
         }
+      } 
+
+      let message = `Game Over! 스코어: ${score.value}`;
+      if (isNewHighScore) {
+        message += '\n최고 기록 갱신!';
       }
+
+      alert(message);
+      location.reload();
     };
 
     const goToRank = () => {

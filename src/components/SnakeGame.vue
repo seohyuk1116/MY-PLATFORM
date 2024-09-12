@@ -5,14 +5,14 @@
     <div v-if="showHighScoreMessage" class="high-score-message">
       최고기록 갱신!
     </div>
-    <div class="grid" ref="gridRef">
+    <div class="grid" :style="gridStyle">
       <div 
         v-for="(cell, index) in cells" 
         :key="index" 
-        :class="getCellClass(index)"
+        :class="['cell', getCellClass(index)]"
       ></div>
     </div>
-    <button @click="startGame" class="start-button">Start/Restart</button>
+    <button @click="startGame" class="start-button">{{ gameActive ? 'Restart' : 'Start' }}</button>
     <div class="button-container">
       <button @click="goBack" class="back-button">Main Menu</button>
       <button @click="goToRank" class="rank-button">랭킹 보기</button>
@@ -28,7 +28,7 @@ import rankApi from '@/api/scoreApi';
 const router = useRouter();
 const gridSize = 15;
 const cellSize = 20;
-const initialSpeed = 200;
+const initialSpeed = 300;
 
 const cells = ref(Array(gridSize * gridSize).fill(null));
 const snake = ref([{ x: 7, y: 7 }]);
@@ -38,11 +38,13 @@ const score = ref(0);
 const gameInterval = ref(null);
 const gameSpeed = ref(initialSpeed);
 const showHighScoreMessage = ref(false);
-const gridRef = ref(null);
+const gameActive = ref(false);
 
 const gridStyle = computed(() => ({
   gridTemplateColumns: `repeat(${gridSize}, ${cellSize}px)`,
   gridTemplateRows: `repeat(${gridSize}, ${cellSize}px)`,
+  width: `${gridSize * cellSize}px`,
+  height: `${gridSize * cellSize}px`,
 }));
 
 function initGame() {
@@ -51,11 +53,12 @@ function initGame() {
   score.value = 0;
   gameSpeed.value = initialSpeed;
   placeFood();
+  gameActive.value = true;
 }
 
 function startGame() {
-  initGame();
   if (gameInterval.value) clearInterval(gameInterval.value);
+  initGame();
   gameInterval.value = setInterval(gameLoop, gameSpeed.value);
 }
 
@@ -71,6 +74,8 @@ function placeFood() {
 }
 
 function gameLoop() {
+  if (!gameActive.value) return;
+
   const head = { ...snake.value[0] };
 
   switch (direction.value) {
@@ -112,41 +117,55 @@ function increaseSpeed() {
 }
 
 async function gameOver() {
+  gameActive.value = false;
   clearInterval(gameInterval.value);
   const user = JSON.parse(localStorage.getItem('user'));
+  let isNewHighScore = false;
+
   if (user) {
     try {
       const scoreData = {
         uid: user.uid,
-        gameName: 'snake',
-        score: score.value.toString()
+        gameName: 'snake_game',
+        score: score.value.toString(),
+        scoreTime: new Date().toISOString()
       };
+      console.log('Submitting score data:', scoreData);
       const response = await rankApi.submitScore(scoreData);
-      if (response.newHighScore) {
-        showHighScoreMessage.value = true;
-        setTimeout(() => {
-          showHighScoreMessage.value = false;
-        }, 3000);
-      }
+      isNewHighScore = response.newHighScore;
+      showHighScoreMessage.value = isNewHighScore;
     } catch (error) {
       console.error('점수 등록 실패:', error);
     }
   }
+
+  let message = `Game Over! 스코어: ${score.value}`;
+  if (isNewHighScore) {
+    message += '\n최고 기록 갱신!';
+  }
+
+  alert(message);
+  location.reload(); // 페이지 새로고침
 }
 
 function getCellClass(index) {
   const x = index % gridSize;
   const y = Math.floor(index / gridSize);
+  const isEvenCell = (x + y) % 2 === 0;
+  let cellClass = isEvenCell ? 'cell-light' : 'cell-dark';
+
   if (snake.value.some(segment => segment.x === x && segment.y === y)) {
-    return 'snake';
+    cellClass += ' snake';
+  } else if (food.value.x === x && food.value.y === y) {
+    cellClass += ' food';
   }
-  if (food.value.x === x && food.value.y === y) {
-    return 'food';
-  }
-  return '';
+
+  return cellClass;
 }
 
 function handleKeydown(e) {
+  if (!gameActive.value) return;
+  
   const key = e.key.toLowerCase();
   const newDirection = {
     arrowup: 'up', w: 'up',
@@ -175,7 +194,6 @@ function goToRank() {
 
 onMounted(() => {
   window.addEventListener('keydown', handleKeydown);
-  startGame();
 });
 
 onUnmounted(() => {
@@ -191,34 +209,46 @@ onUnmounted(() => {
   align-items: center;
   padding: 20px;
   font-family: Arial, sans-serif;
+  background-color: #578a34; 
+  min-height: 50vh; 
 }
 
 .grid {
   display: grid;
-  gap: 1px;
-  background-color: #ccc;
   border: 1px solid #999;
   margin: 20px 0;
+  box-sizing: border-box;
 }
 
-.grid div {
+.cell {
   width: 20px;
   height: 20px;
+  box-sizing: border-box;
+}
+
+.cell-light {
+  background-color: #aad751;
+}
+
+.cell-dark {
+  background-color: #a2d149;
 }
 
 .snake {
-  background-color: #4CAF50;
-  border-radius: 4px;
+  background-color: #4570e6; /* 뱀 색상 */
+  border: none;
 }
 
 .food {
-  background-color: #F44336;
-  border-radius: 50%;
+  background-color: #e7471d; /* 사과 색상 */
+  border: none;
+  /* border-radius: 50%; */
 }
 
 .score {
   font-size: 24px;
   margin-bottom: 10px;
+  color: white; /* 점수 텍스트 색상을 흰색으로 변경 */
 }
 
 button {
@@ -252,5 +282,9 @@ button:hover {
   padding: 10px;
   border-radius: 5px;
   font-weight: bold;
+}
+
+h1 {
+  color: white; /* 제목 색상을 흰색으로 변경 */
 }
 </style>
